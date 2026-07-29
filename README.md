@@ -53,6 +53,9 @@ repo, update `base` here and `basename` in `src/main.tsx` to match.
 - Result (`pending` / `win` / `loss`) is never stored — `computeResult` in
   `src/lib/sleeper.ts` fetches that week's Sleeper matchups on read and
   compares the picked roster's points against its opponent's.
+- `src/components/Leaderboard.tsx` shows every pool member's pick history and
+  alive/eliminated status, batching one Sleeper matchup fetch per distinct
+  week (shared across all players' picks that week) instead of one per pick.
 
 ## Known limitations / next steps
 
@@ -64,5 +67,3 @@ repo, update `base` here and `basename` in `src/main.tsx` to match.
   in `supabase/schema.sql`.
 - **Ties currently count as a loss** for the picker (`computeResult` in
   `src/lib/sleeper.ts`) — adjust if your pool should treat ties differently.
-- No elimination/leaderboard view yet — `PoolDetail` shows one player's own
-  pick history, not the whole pool's standings.
