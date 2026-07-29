@@ -30,9 +30,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   async function signInWithEmail(email: string) {
+    // window.location.origin is just protocol+host; the app is deployed under a
+    // /dynasty-survivor/ subpath (Vite's BASE_URL), so that has to be appended or the
+    // magic link bounces to the bare GitHub Pages root and 404s.
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: window.location.origin },
+      options: { emailRedirectTo: window.location.origin + import.meta.env.BASE_URL },
     })
     return { error: error?.message ?? null }
   }
