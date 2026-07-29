@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
-import { getLeagueManagers, getMatchups, getNflState, computeResult, type LeagueManager } from '../lib/sleeper'
-import type { Pick, PickResult, Pool } from '../types'
+import { getLeagueManagers, getNflState, type LeagueManager } from '../lib/sleeper'
+import Leaderboard from '../components/Leaderboard'
+import type { Pick, Pool } from '../types'
 
 export default function PoolDetail() {
   const { poolId } = useParams<{ poolId: string }>()
@@ -13,10 +14,10 @@ export default function PoolDetail() {
   const [managers, setManagers] = useState<LeagueManager[]>([])
   const [currentWeek, setCurrentWeek] = useState<number | null>(null)
   const [myPicks, setMyPicks] = useState<Pick[]>([])
-  const [results, setResults] = useState<Record<number, PickResult>>({})
   const [selectedRoster, setSelectedRoster] = useState<number | ''>('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [refreshToken, setRefreshToken] = useState(0)
 
   useEffect(() => {
     if (!poolId || !user) return
@@ -46,15 +47,7 @@ export default function PoolDetail() {
 
         setManagers(leagueManagers)
         setCurrentWeek(nflState.week)
-        const picks = picksRes.data ?? []
-        setMyPicks(picks)
-
-        const resultsByWeek: Record<number, PickResult> = {}
-        for (const pick of picks) {
-          const matchups = await getMatchups(poolData.sleeper_league_id, pick.week)
-          resultsByWeek[pick.week] = computeResult(matchups, pick.sleeper_roster_id)
-        }
-        setResults(resultsByWeek)
+        setMyPicks(picksRes.data ?? [])
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err))
       } finally {
@@ -93,6 +86,7 @@ export default function PoolDetail() {
 
     setMyPicks((prev) => [...prev, data])
     setSelectedRoster('')
+    setRefreshToken((n) => n + 1)
   }
 
   if (loading) return <div className="page">Loading…</div>
@@ -130,14 +124,8 @@ export default function PoolDetail() {
         </div>
       )}
 
-      <h2>Your picks</h2>
-      <ul>
-        {myPicks.map((pick) => (
-          <li key={pick.id}>
-            Week {pick.week}: {pick.sleeper_manager_name} — {results[pick.week] ?? 'pending'}
-          </li>
-        ))}
-      </ul>
+      <h2>Leaderboard</h2>
+      <Leaderboard poolId={pool.id} leagueId={pool.sleeper_league_id} refreshToken={refreshToken} />
     </div>
   )
 }

@@ -38,3 +38,20 @@
 .error {
   color: #e5484d;
 }
+
+.leaderboard {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.leaderboard th,
+.leaderboard td {
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.leaderboard tr.eliminated {
+  opacity: 0.55;
+}
