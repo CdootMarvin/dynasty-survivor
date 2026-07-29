@@ -79,6 +79,23 @@ drive the UI (disabling the pick form, showing the lock time) — a modified
 client can't bypass the real deadline since Postgres's clock is what's
 actually checked.
 
+## Elimination
+
+`PoolDetail` replays a signed-in player's own picks against live Sleeper
+matchup data (same approach as the leaderboard) to find their earliest loss.
+Once eliminated, the pick form is replaced with a message naming the week and
+manager that ended their run, and they can no longer submit new picks from
+the UI.
+
+This check is **client-side only** — like results generally, elimination
+status isn't stored anywhere in Postgres, so RLS has no way to block an
+eliminated player's `insert` at the database level (it can't independently
+verify a Sleeper score). A modified client could still insert a pick after
+elimination. Closing that gap would mean either storing computed results
+(reintroducing a grading step) or moving result computation into a trusted
+place RLS can call, e.g. a `pg_net`-backed function — not done here to keep
+the architecture simple.
+
 ## Known limitations / next steps
 
 - **Ties currently count as a loss** for the picker (`computeResult` in
@@ -86,3 +103,5 @@ actually checked.
 - **The Thursday-7PM lock is a fixed approximation**, not tied to real game
   times — e.g. it doesn't account for early London-game weeks or Thanksgiving
   scheduling quirks.
+- **Elimination is enforced client-side only** (see above) — pick locking is
+  the one rule with real database-level teeth.
