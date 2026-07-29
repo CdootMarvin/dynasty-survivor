@@ -55,3 +55,15 @@
 .leaderboard tr.eliminated {
   opacity: 0.55;
 }
+
+.hint {
+  font-size: 0.85rem;
+  opacity: 0.75;
+}
+
+.page label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+}

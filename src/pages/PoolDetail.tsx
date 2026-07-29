@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { getLeagueManagers, getNflState, type LeagueManager } from '../lib/sleeper'
+import { getWeekLockAt, isWeekLocked } from '../lib/lock'
 import Leaderboard from '../components/Leaderboard'
 import type { Pick, Pool } from '../types'
 
@@ -60,9 +61,15 @@ export default function PoolDetail() {
 
   const alreadyPickedRosterIds = new Set(myPicks.map((p) => p.sleeper_roster_id))
   const hasPickedThisWeek = currentWeek !== null && myPicks.some((p) => p.week === currentWeek)
+  const locked =
+    pool !== null && currentWeek !== null && isWeekLocked(currentWeek, pool.season_start_thursday)
+  const lockAt =
+    pool?.season_start_thursday && currentWeek !== null
+      ? getWeekLockAt(currentWeek, pool.season_start_thursday)
+      : null
 
   async function handlePick() {
-    if (!poolId || !user || !currentWeek || selectedRoster === '') return
+    if (!poolId || !user || !currentWeek || selectedRoster === '' || locked) return
     const manager = managers.find((m) => m.rosterId === selectedRoster)
     if (!manager) return
 
@@ -101,8 +108,17 @@ export default function PoolDetail() {
       </p>
 
       <h2>Week {currentWeek}</h2>
+      {lockAt && (
+        <p className="hint">
+          {locked
+            ? `Picks locked at ${lockAt.toLocaleString()}.`
+            : `Picks lock ${lockAt.toLocaleString()}.`}
+        </p>
+      )}
       {hasPickedThisWeek ? (
         <p>You've already picked for this week.</p>
+      ) : locked ? (
+        <p>Picks are locked for this week — you didn't get a pick in before kickoff.</p>
       ) : (
         <div>
           <select

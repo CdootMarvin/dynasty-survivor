@@ -19,7 +19,11 @@ matchup data to compute win/loss on the fly.
 3. In the Supabase dashboard, open the SQL Editor and run everything in
    [`supabase/schema.sql`](./supabase/schema.sql) once. This creates the
    `profiles`, `pools`, `pool_members`, and `picks` tables with row-level
-   security policies.
+   security policies. If you already ran an older version of this file
+   before pick locking existed, run
+   [`supabase/migrations/0001_pick_locking.sql`](./supabase/migrations/0001_pick_locking.sql)
+   instead to bring an existing database up to date without touching your
+   data.
 4. In Supabase Auth settings, magic-link email sign-in is enabled by default —
    no extra config needed for local dev.
 5. `npm run dev`
@@ -57,13 +61,28 @@ repo, update `base` here and `basename` in `src/main.tsx` to match.
   alive/eliminated status, batching one Sleeper matchup fetch per distinct
   week (shared across all players' picks that week) instead of one per pick.
 
+## Pick locking
+
+Picks lock every week at **7:00 PM America/Chicago on that week's Thursday**
+— a static approximation of NFL kickoff, not the real per-game schedule (the
+Sleeper API doesn't expose one). A pool's `season_start_thursday` column
+(set when creating the pool, e.g. `2026-09-03` for week 1) anchors the
+calendar date; week N locks at `season_start_thursday + (N-1) weeks`.
+Leaving it blank disables locking for that pool.
+
+This is enforced authoritatively in Postgres, not the client: `pick_lock_at()`
+in `supabase/schema.sql` computes the lock instant, and the RLS policies on
+`picks` use it directly against `now()` to gate insert/update/delete and to
+hide other players' picks for a week until it locks (each player can always
+see their own). `src/lib/lock.ts` mirrors this logic client-side purely to
+drive the UI (disabling the pick form, showing the lock time) — a modified
+client can't bypass the real deadline since Postgres's clock is what's
+actually checked.
+
 ## Known limitations / next steps
 
-- **Picks are publicly readable as soon as they're made.** Real survivor
-  pools usually hide picks until the week locks (first kickoff) so players
-  can't copy each other. Doing that correctly needs a trusted source of
-  "now" (a Supabase Edge Function or scheduled job), which is intentionally
-  left out of this scaffold — see the comment above the `picks` select policy
-  in `supabase/schema.sql`.
 - **Ties currently count as a loss** for the picker (`computeResult` in
   `src/lib/sleeper.ts`) — adjust if your pool should treat ties differently.
+- **The Thursday-7PM lock is a fixed approximation**, not tied to real game
+  times — e.g. it doesn't account for early London-game weeks or Thanksgiving
+  scheduling quirks.

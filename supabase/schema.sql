@@ -27,7 +27,10 @@ create table if not exists pools (
   season text not null,
   invite_code text not null unique default substr(md5(random()::text), 1, 8),
   created_by uuid not null references profiles (id) on delete cascade,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  -- Calendar date of the Thursday of week 1 (e.g. '2026-09-03'). Picks for week N lock at
+  -- 7:00 PM America/Chicago on (season_start_thursday + (N-1) weeks). NULL means no locking.
+  season_start_thursday date
 );
 
 -- Who is playing in a given pool.
@@ -73,6 +76,19 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function handle_new_user();
 
+-- Returns the instant (as a real timestamptz) that picks for a given week lock: 7:00 PM
+-- America/Chicago on the Thursday of that week. This is evaluated by Postgres using its own
+-- clock, so it can't be bypassed by a client lying about its local time.
+create or replace function pick_lock_at(p_week int, p_season_start_thursday date)
+returns timestamptz
+language sql
+immutable
+as $$
+  select
+    ((p_season_start_thursday + (p_week - 1) * 7)::timestamp + interval '19 hours')
+      at time zone 'America/Chicago'
+$$;
+
 -- Row Level Security ---------------------------------------------------------
 
 alter table profiles enable row level security;
@@ -114,16 +130,22 @@ create policy "users can leave a pool themselves"
   on pool_members for delete
   using (auth.uid() = user_id);
 
--- NOTE: picks are readable by everyone as soon as they're made. Classic survivor pools
--- hide picks until the weekly lock (first kickoff) so players can't copy each other.
--- That needs a source of truth for "now" server-side (e.g. a Supabase Edge Function or
--- a scheduled job comparing against Sleeper's NFL state), which is a good next step but
--- is intentionally left out of this initial scaffold.
-create policy "picks are publicly readable"
+-- Picks are hidden from everyone but the picker until their week locks (see pick_lock_at
+-- above). If a pool has no season_start_thursday set, picks are unlocked/visible immediately
+-- (back-compat default for pools created before locking existed).
+create policy "picks are visible to their owner, or to everyone once locked"
   on picks for select
-  using (true);
+  using (
+    auth.uid() = user_id
+    or exists (
+      select 1 from pools
+      where pools.id = picks.pool_id
+        and pools.season_start_thursday is not null
+        and now() >= pick_lock_at(picks.week, pools.season_start_thursday)
+    )
+  );
 
-create policy "members can create their own picks"
+create policy "members can create their own picks before lock"
   on picks for insert
   with check (
     auth.uid() = user_id
@@ -132,13 +154,41 @@ create policy "members can create their own picks"
       where pool_members.pool_id = picks.pool_id
         and pool_members.user_id = auth.uid()
     )
+    and exists (
+      select 1 from pools
+      where pools.id = picks.pool_id
+        and (
+          pools.season_start_thursday is null
+          or now() < pick_lock_at(picks.week, pools.season_start_thursday)
+        )
+    )
   );
 
-create policy "members can update their own picks"
+create policy "members can update their own picks before lock"
   on picks for update
-  using (auth.uid() = user_id)
+  using (
+    auth.uid() = user_id
+    and exists (
+      select 1 from pools
+      where pools.id = picks.pool_id
+        and (
+          pools.season_start_thursday is null
+          or now() < pick_lock_at(picks.week, pools.season_start_thursday)
+        )
+    )
+  )
   with check (auth.uid() = user_id);
 
-create policy "members can delete their own picks"
+create policy "members can delete their own picks before lock"
   on picks for delete
-  using (auth.uid() = user_id);
+  using (
+    auth.uid() = user_id
+    and exists (
+      select 1 from pools
+      where pools.id = picks.pool_id
+        and (
+          pools.season_start_thursday is null
+          or now() < pick_lock_at(picks.week, pools.season_start_thursday)
+        )
+    )
+  );

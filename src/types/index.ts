@@ -14,6 +14,8 @@ export interface Pool {
   invite_code: string
   created_by: string
   created_at: string
+  /** YYYY-MM-DD date of week 1's Thursday, or null if pick locking is disabled. */
+  season_start_thursday: string | null
 }
 
 export interface PoolMember {

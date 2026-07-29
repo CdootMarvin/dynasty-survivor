@@ -13,6 +13,7 @@ export default function Pools() {
   const [name, setName] = useState('')
   const [leagueId, setLeagueId] = useState('')
   const [season, setSeason] = useState(String(new Date().getFullYear()))
+  const [seasonStartThursday, setSeasonStartThursday] = useState('')
   const [inviteCode, setInviteCode] = useState('')
 
   async function loadPools() {
@@ -37,7 +38,13 @@ export default function Pools() {
 
     const { data: pool, error: poolError } = await supabase
       .from('pools')
-      .insert({ name, sleeper_league_id: leagueId, season, created_by: user.id })
+      .insert({
+        name,
+        sleeper_league_id: leagueId,
+        season,
+        season_start_thursday: seasonStartThursday || null,
+        created_by: user.id,
+      })
       .select()
       .single()
 
@@ -53,6 +60,7 @@ export default function Pools() {
 
     setName('')
     setLeagueId('')
+    setSeasonStartThursday('')
     loadPools()
   }
 
@@ -123,8 +131,20 @@ export default function Pools() {
           value={season}
           onChange={(e) => setSeason(e.target.value)}
         />
+        <label>
+          Week 1 Thursday (kickoff lock day)
+          <input
+            type="date"
+            value={seasonStartThursday}
+            onChange={(e) => setSeasonStartThursday(e.target.value)}
+          />
+        </label>
         <button type="submit">Create pool</button>
       </form>
+      <p className="hint">
+        Picks lock every week at 7:00 PM Central on that Thursday, plus 7 days per week. Leave
+        blank to disable pick locking for this pool.
+      </p>
 
       <h2>Join a pool</h2>
       <form onSubmit={handleJoin}>
