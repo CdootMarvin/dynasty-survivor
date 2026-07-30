@@ -17,19 +17,21 @@ export default function Pools() {
   const [inviteCode, setInviteCode] = useState('')
 
   async function loadPools() {
+    if (!user) return
     setLoading(true)
     const { data, error } = await supabase
-      .from('pools')
-      .select('*')
-      .order('created_at', { ascending: false })
+      .from('pool_members')
+      .select('pools(*)')
+      .eq('user_id', user.id)
+      .order('created_at', { foreignTable: 'pools', ascending: false })
     if (error) setError(error.message)
-    else setPools(data ?? [])
+    else setPools((data ?? []).map((row) => row.pools as unknown as Pool).filter(Boolean))
     setLoading(false)
   }
 
   useEffect(() => {
     loadPools()
-  }, [])
+  }, [user])
 
   async function handleCreate(e: FormEvent) {
     e.preventDefault()

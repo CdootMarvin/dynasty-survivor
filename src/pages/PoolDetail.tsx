@@ -34,6 +34,7 @@ export default function PoolDetail() {
   const [eliminatedPick, setEliminatedPick] = useState<Pick | null>(null)
   const [selectedRoster, setSelectedRoster] = useState<number | ''>('')
   const [error, setError] = useState<string | null>(null)
+  const [pickError, setPickError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshToken, setRefreshToken] = useState(0)
 
@@ -122,7 +123,7 @@ export default function PoolDetail() {
     const manager = managers.find((m) => m.rosterId === selectedRoster)
     if (!manager) return
 
-    setError(null)
+    setPickError(null)
     const { data, error } = await supabase
       .from('picks')
       .insert({
@@ -136,7 +137,7 @@ export default function PoolDetail() {
       .single()
 
     if (error || !data) {
-      setError(error?.message ?? 'Failed to save pick')
+      setPickError(error?.message ?? 'Failed to save pick')
       return
     }
 
@@ -291,6 +292,7 @@ export default function PoolDetail() {
               ? `Managers you've already picked are unavailable through week ${RESET_WEEK - 1}, then everyone's available again starting week ${RESET_WEEK}.`
               : `All managers are available again this half — used ones will drop off again as they're repicked.`}
           </p>
+          {pickError && <p className="error">{pickError}</p>}
         </div>
       )}
 
