@@ -26,6 +26,9 @@ matchup data to compute win/loss on the fly.
    data:
    - `0001_pick_locking.sql` — adds weekly pick locking
    - `0002_reset_manager_pool_at_week9.sql` — resets manager reuse at week 9
+   - `0003_backfill_missing_profiles.sql` — fixes accounts created before the
+     auto-profile trigger existed (symptom: creating/joining a pool fails
+     with a `pools_created_by_fkey` or `pool_members` foreign key error)
 4. In Supabase Auth settings, magic-link email sign-in is enabled by default —
    no extra config needed for local dev.
 5. `npm run dev`
