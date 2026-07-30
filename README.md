@@ -29,6 +29,8 @@ matchup data to compute win/loss on the fly.
    - `0003_backfill_missing_profiles.sql` — fixes accounts created before the
      auto-profile trigger existed (symptom: creating/joining a pool fails
      with a `pools_created_by_fkey` or `pool_members` foreign key error)
+   - `0004_pool_creator_can_delete.sql` — adds the missing RLS policy letting
+     a pool's creator delete it (needed for the "Delete pool" button)
 4. In Supabase Auth settings, magic-link email sign-in is enabled by default —
    no extra config needed for local dev.
 5. `npm run dev`

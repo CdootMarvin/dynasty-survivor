@@ -122,6 +122,10 @@ create policy "pool creator can update their pool"
   using (auth.uid() = created_by)
   with check (auth.uid() = created_by);
 
+create policy "pool creator can delete their pool"
+  on pools for delete
+  using (auth.uid() = created_by);
+
 create policy "pool membership is publicly readable"
   on pool_members for select
   using (true);

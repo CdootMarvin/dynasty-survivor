@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { useParams, useSearchParams } from 'react-router-dom'
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import {
@@ -17,6 +17,7 @@ import type { Pick, Pool } from '../types'
 export default function PoolDetail() {
   const { poolId } = useParams<{ poolId: string }>()
   const { user } = useAuth()
+  const navigate = useNavigate()
 
   // Testing aid: ?week=5 overrides Sleeper's live current week (0 during the pre-season, so
   // picking is otherwise impossible until the real season starts). Never used in normal play.
@@ -41,6 +42,7 @@ export default function PoolDetail() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [settingsError, setSettingsError] = useState<string | null>(null)
   const [settingsSaving, setSettingsSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [nameField, setNameField] = useState('')
   const [leagueIdField, setLeagueIdField] = useState('')
   const [seasonField, setSeasonField] = useState('')
@@ -191,6 +193,28 @@ export default function PoolDetail() {
     setRefreshToken((n) => n + 1)
   }
 
+  async function handleDeletePool() {
+    if (!pool) return
+    if (
+      !window.confirm(
+        `Delete "${pool.name}"? This permanently removes the pool and every player's picks. This can't be undone.`,
+      )
+    )
+      return
+
+    setSettingsError(null)
+    setDeleting(true)
+    const { error } = await supabase.from('pools').delete().eq('id', pool.id)
+    setDeleting(false)
+
+    if (error) {
+      setSettingsError(error.message)
+      return
+    }
+
+    navigate('/')
+  }
+
   if (loading) return <div className="page">Loading…</div>
   if (error) return <div className="page error">{error}</div>
   if (!pool) return null
@@ -241,9 +265,15 @@ export default function PoolDetail() {
               {settingsError && <p className="error">{settingsError}</p>}
             </form>
           ) : (
-            <button type="button" onClick={openSettings}>
-              Edit pool settings
-            </button>
+            <>
+              <button type="button" onClick={openSettings}>
+                Edit pool settings
+              </button>
+              <button type="button" onClick={handleDeletePool} disabled={deleting}>
+                {deleting ? 'Deleting…' : 'Delete pool'}
+              </button>
+              {settingsError && <p className="error">{settingsError}</p>}
+            </>
           )}
         </div>
       )}
