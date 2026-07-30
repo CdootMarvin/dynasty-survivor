@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import {
@@ -17,6 +17,15 @@ import type { Pick, Pool } from '../types'
 export default function PoolDetail() {
   const { poolId } = useParams<{ poolId: string }>()
   const { user } = useAuth()
+
+  // Testing aid: ?week=5 overrides Sleeper's live current week (0 during the pre-season, so
+  // picking is otherwise impossible until the real season starts). Never used in normal play.
+  const [searchParams] = useSearchParams()
+  const weekOverrideParam = searchParams.get('week')
+  const weekOverride =
+    weekOverrideParam && Number(weekOverrideParam) >= 1 && Number(weekOverrideParam) <= 18
+      ? Number(weekOverrideParam)
+      : null
 
   const [pool, setPool] = useState<Pool | null>(null)
   const [managers, setManagers] = useState<LeagueManager[]>([])
@@ -55,7 +64,7 @@ export default function PoolDetail() {
         ])
 
         setManagers(leagueManagers)
-        setCurrentWeek(nflState.week)
+        setCurrentWeek(weekOverride ?? nflState.week)
         const picks = picksRes.data ?? []
         setMyPicks(picks)
 
@@ -81,7 +90,7 @@ export default function PoolDetail() {
     }
 
     load()
-  }, [poolId, user])
+  }, [poolId, user, weekOverride])
 
   // A manager can be picked again once the second half of the season starts (see pickRules.ts),
   // so only picks from the same half as the current week block re-selecting that manager.
@@ -138,6 +147,10 @@ export default function PoolDetail() {
       <p>
         Season {pool.season} · Invite code: <code>{pool.invite_code}</code>
       </p>
+
+      {weekOverride !== null && (
+        <p className="hint">Testing mode: viewing week {weekOverride} instead of the live week.</p>
+      )}
 
       <h2>Week {currentWeek}</h2>
       {lockAt && (

@@ -113,6 +113,29 @@ elimination. Closing that gap would mean either storing computed results
 place RLS can call, e.g. a `pg_net`-backed function — not done here to keep
 the architecture simple.
 
+## Testing before the season starts
+
+`currentWeek` normally comes from Sleeper's live `/state/nfl` endpoint, which
+reports `week: 0` for the entire pre-season — so picking is impossible
+end-to-end until the real season kicks off. To exercise the app before then:
+
+1. **Point a test pool at a real past-season Sleeper league** (e.g. last
+   year's version of your dynasty league) instead of the current one, so
+   `getMatchups` returns real completed games with real scores instead of
+   empty/zeroed ones. Sleeper gives each season's league a new ID linked via
+   `previous_league_id`, so grab that older ID from Sleeper for this.
+2. **Append `?week=N`** to a pool's URL (e.g.
+   `.../pools/<id>?week=5`) to override the current week the whole page uses
+   — picking, locking, and elimination all key off it. A yellow "Testing
+   mode" hint appears whenever it's active so it's never confused for the
+   live week. This only affects `PoolDetail`; `Leaderboard` isn't
+   week-scoped, it already renders whatever picks exist regardless of the
+   live week.
+3. To test locking specifically, set the pool's `season_start_thursday` to a
+   date that puts your test week's lock instant in the past (to see other
+   players' picks/results appear) or the future (to see the pick form
+   active) relative to right now.
+
 ## Known limitations / next steps
 
 - **Ties currently count as a loss** for the picker (`computeResult` in
