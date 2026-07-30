@@ -10,6 +10,7 @@ import {
   type LeagueManager,
 } from '../lib/sleeper'
 import { getWeekLockAt, isWeekLocked } from '../lib/lock'
+import { RESET_WEEK, pickHalf } from '../lib/pickRules'
 import Leaderboard from '../components/Leaderboard'
 import type { Pick, Pool } from '../types'
 
@@ -82,7 +83,15 @@ export default function PoolDetail() {
     load()
   }, [poolId, user])
 
-  const alreadyPickedRosterIds = new Set(myPicks.map((p) => p.sleeper_roster_id))
+  // A manager can be picked again once the second half of the season starts (see pickRules.ts),
+  // so only picks from the same half as the current week block re-selecting that manager.
+  const alreadyPickedRosterIds = new Set(
+    currentWeek === null
+      ? []
+      : myPicks
+          .filter((p) => pickHalf(p.week) === pickHalf(currentWeek))
+          .map((p) => p.sleeper_roster_id),
+  )
   const hasPickedThisWeek = currentWeek !== null && myPicks.some((p) => p.week === currentWeek)
   const locked =
     pool !== null && currentWeek !== null && isWeekLocked(currentWeek, pool.season_start_thursday)
@@ -165,6 +174,11 @@ export default function PoolDetail() {
           <button type="button" onClick={handlePick} disabled={selectedRoster === ''}>
             Lock in pick
           </button>
+          <p className="hint">
+            {currentWeek !== null && currentWeek < RESET_WEEK
+              ? `Managers you've already picked are unavailable through week ${RESET_WEEK - 1}, then everyone's available again starting week ${RESET_WEEK}.`
+              : `All managers are available again this half — used ones will drop off again as they're repicked.`}
+          </p>
         </div>
       )}
 

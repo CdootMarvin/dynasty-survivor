@@ -19,11 +19,13 @@ matchup data to compute win/loss on the fly.
 3. In the Supabase dashboard, open the SQL Editor and run everything in
    [`supabase/schema.sql`](./supabase/schema.sql) once. This creates the
    `profiles`, `pools`, `pool_members`, and `picks` tables with row-level
-   security policies. If you already ran an older version of this file
-   before pick locking existed, run
-   [`supabase/migrations/0001_pick_locking.sql`](./supabase/migrations/0001_pick_locking.sql)
-   instead to bring an existing database up to date without touching your
-   data.
+   security policies. If you already ran an older version of this file,
+   instead run whichever of the numbered files in
+   [`supabase/migrations/`](./supabase/migrations/) you haven't applied yet,
+   in order, to bring an existing database up to date without touching your
+   data:
+   - `0001_pick_locking.sql` — adds weekly pick locking
+   - `0002_reset_manager_pool_at_week9.sql` — resets manager reuse at week 9
 4. In Supabase Auth settings, magic-link email sign-in is enabled by default —
    no extra config needed for local dev.
 5. `npm run dev`
@@ -52,14 +54,29 @@ repo, update `base` here and `basename` in `src/main.tsx` to match.
 - `getLeagueManagers` (`src/lib/sleeper.ts`) merges a Sleeper league's rosters
   and users into a pickable list of managers.
 - A pick is one row in `picks`: `(pool_id, user_id, week, sleeper_roster_id)`.
-  Unique constraints in the schema enforce one pick per player per week and no
-  repeat manager within a pool.
+  Unique constraints in the schema enforce one pick per player per week, and
+  no repeat manager within the same season "half" (see below).
 - Result (`pending` / `win` / `loss`) is never stored — `computeResult` in
   `src/lib/sleeper.ts` fetches that week's Sleeper matchups on read and
   compares the picked roster's points against its opponent's.
 - `src/components/Leaderboard.tsx` shows every pool member's pick history and
   alive/eliminated status, batching one Sleeper matchup fetch per distinct
   week (shared across all players' picks that week) instead of one per pick.
+
+## Manager reuse resets at week 9
+
+A manager can only be picked once per **half** of the season — weeks 1-8,
+then weeks 9-18 — rather than once for the whole season. A strict
+full-season no-reuse rule runs out of pickable managers before the season
+ends for typical dynasty league sizes (10-14 teams): a 12-player pool where
+everyone keeps winning would run dry around week 13.
+
+This is enforced at the database level via a generated `pick_half` column on
+`picks` (`1` for week < 9, else `2`) and a unique constraint on
+`(pool_id, user_id, sleeper_roster_id, pick_half)`. `src/lib/pickRules.ts`
+(`RESET_WEEK`, `pickHalf()`) mirrors the same `week < 9` split client-side to
+filter the manager dropdown — keep both in sync if you ever change the
+threshold.
 
 ## Pick locking
 

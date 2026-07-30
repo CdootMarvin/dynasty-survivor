@@ -3,7 +3,9 @@
 --
 -- Game rule encoded here: each week, a player picks one Sleeper league manager (roster).
 -- They survive the week if that manager won their fantasy matchup. A manager can only be
--- picked once per pool for the whole season (classic survivor "no reuse" rule).
+-- picked once per pool per "half" of the season (weeks 1-8, then weeks 9-18) — a strict
+-- full-season no-reuse rule runs out of pickable managers before the season ends for typical
+-- dynasty league sizes (10-14 teams), so the pool of available managers resets once at week 9.
 --
 -- Win/loss results are NOT stored here. The frontend computes survival status live by
 -- fetching matchup data from the Sleeper API and cross-referencing it with the picks below.
@@ -51,8 +53,10 @@ create table if not exists picks (
   sleeper_roster_id int not null,
   sleeper_manager_name text not null,
   created_at timestamptz not null default now(),
+  -- 1 for weeks 1-8, 2 for weeks 9-18. Keep in sync with pickHalf() in src/lib/pickRules.ts.
+  pick_half smallint generated always as (case when week < 9 then 1 else 2 end) stored,
   unique (pool_id, user_id, week), -- one pick per player per week
-  unique (pool_id, user_id, sleeper_roster_id) -- can't pick the same manager twice
+  unique (pool_id, user_id, sleeper_roster_id, pick_half) -- no repeat manager within a half
 );
 
 -- Auto-create a profile row whenever a new auth user signs up.
