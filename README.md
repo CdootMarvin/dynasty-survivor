@@ -50,7 +50,16 @@ One-time setup on GitHub:
 
 `vite.config.ts` is set to `base: '/dynasty-survivor/'` to match this repo's
 Pages URL (`https://<user>.github.io/dynasty-survivor/`). If you rename the
-repo, update `base` here and `basename` in `src/main.tsx` to match.
+repo, update `base` here, `basename` in `src/main.tsx`, and
+`pathSegmentsToKeep` in `public/404.html` to match.
+
+GitHub Pages is a static file host with no server-side routing, so directly
+loading or refreshing a client-side route like `/pools/<id>` 404s unless
+handled specially. `public/404.html` + the small script in `index.html`
+implement the standard [SPA-on-GitHub-Pages redirect
+trick](https://github.com/rafgraph/spa-github-pages) to work around this —
+without it, only in-app link clicks would work, not shared URLs, magic-link
+redirects, or page refreshes.
 
 ## How picking works
 

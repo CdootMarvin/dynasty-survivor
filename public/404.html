@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Dynasty Survivor</title>
+    <script type="text/javascript">
+      // GitHub Pages is a static file host with no server-side routing, so a direct load
+      // (or refresh) of a client-side route like /pools/<id> 404s here. This redirects to
+      // index.html with the intended path packed into the query string; index.html then
+      // unpacks it back into the real URL before React Router mounts.
+      // Adapted from https://github.com/rafgraph/spa-github-pages
+      var pathSegmentsToKeep = 1 // keep the /dynasty-survivor/ repo-name segment
+
+      var l = window.location
+      l.replace(
+        l.protocol +
+          '//' +
+          l.hostname +
+          (l.port ? ':' + l.port : '') +
+          l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') +
+          '/?/' +
+          l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
+          (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+          l.hash,
+      )
+    </script>
+  </head>
+  <body></body>
+</html>
