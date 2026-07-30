@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
@@ -36,6 +36,14 @@ export default function PoolDetail() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshToken, setRefreshToken] = useState(0)
+
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [settingsError, setSettingsError] = useState<string | null>(null)
+  const [settingsSaving, setSettingsSaving] = useState(false)
+  const [nameField, setNameField] = useState('')
+  const [leagueIdField, setLeagueIdField] = useState('')
+  const [seasonField, setSeasonField] = useState('')
+  const [seasonStartThursdayField, setSeasonStartThursdayField] = useState('')
 
   useEffect(() => {
     if (!poolId || !user) return
@@ -137,6 +145,51 @@ export default function PoolDetail() {
     setRefreshToken((n) => n + 1)
   }
 
+  function openSettings() {
+    if (!pool) return
+    setNameField(pool.name)
+    setLeagueIdField(pool.sleeper_league_id)
+    setSeasonField(pool.season)
+    setSeasonStartThursdayField(pool.season_start_thursday ?? '')
+    setSettingsError(null)
+    setSettingsOpen(true)
+  }
+
+  async function handleSaveSettings(e: FormEvent) {
+    e.preventDefault()
+    if (!pool) return
+    setSettingsSaving(true)
+    setSettingsError(null)
+
+    const leagueIdChanged = leagueIdField !== pool.sleeper_league_id
+
+    const { data, error } = await supabase
+      .from('pools')
+      .update({
+        name: nameField,
+        sleeper_league_id: leagueIdField,
+        season: seasonField,
+        season_start_thursday: seasonStartThursdayField || null,
+      })
+      .eq('id', pool.id)
+      .select()
+      .single()
+
+    setSettingsSaving(false)
+
+    if (error || !data) {
+      setSettingsError(error?.message ?? 'Failed to save settings')
+      return
+    }
+
+    setPool(data)
+    setSettingsOpen(false)
+    if (leagueIdChanged) {
+      setManagers(await getLeagueManagers(data.sleeper_league_id))
+    }
+    setRefreshToken((n) => n + 1)
+  }
+
   if (loading) return <div className="page">Loading…</div>
   if (error) return <div className="page error">{error}</div>
   if (!pool) return null
@@ -147,6 +200,52 @@ export default function PoolDetail() {
       <p>
         Season {pool.season} · Invite code: <code>{pool.invite_code}</code>
       </p>
+
+      {user?.id === pool.created_by && (
+        <div>
+          {settingsOpen ? (
+            <form onSubmit={handleSaveSettings}>
+              <input
+                placeholder="Pool name"
+                required
+                value={nameField}
+                onChange={(e) => setNameField(e.target.value)}
+              />
+              <input
+                placeholder="Sleeper league ID"
+                required
+                value={leagueIdField}
+                onChange={(e) => setLeagueIdField(e.target.value)}
+              />
+              <input
+                placeholder="Season"
+                required
+                value={seasonField}
+                onChange={(e) => setSeasonField(e.target.value)}
+              />
+              <label>
+                Week 1 Thursday (kickoff lock day)
+                <input
+                  type="date"
+                  value={seasonStartThursdayField}
+                  onChange={(e) => setSeasonStartThursdayField(e.target.value)}
+                />
+              </label>
+              <button type="submit" disabled={settingsSaving}>
+                {settingsSaving ? 'Saving…' : 'Save settings'}
+              </button>
+              <button type="button" onClick={() => setSettingsOpen(false)}>
+                Cancel
+              </button>
+              {settingsError && <p className="error">{settingsError}</p>}
+            </form>
+          ) : (
+            <button type="button" onClick={openSettings}>
+              Edit pool settings
+            </button>
+          )}
+        </div>
+      )}
 
       {weekOverride !== null && (
         <p className="hint">Testing mode: viewing week {weekOverride} instead of the live week.</p>
