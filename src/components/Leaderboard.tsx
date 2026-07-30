@@ -106,43 +106,63 @@ export default function Leaderboard({ poolId, leagueId, refreshToken }: Leaderbo
     }
   }, [poolId, leagueId, refreshToken])
 
-  if (loading) return <p>Loading leaderboard…</p>
+  if (loading) return <p className="hint">Loading leaderboard…</p>
   if (error) return <p className="error">{error}</p>
-  if (rows.length === 0) return <p>No one has joined this pool yet.</p>
+  if (rows.length === 0) return <p className="hint">No one has joined this pool yet.</p>
 
   const aliveCount = rows.filter((r) => r.eliminatedWeek === null).length
 
   return (
     <div>
-      <p>
-        {aliveCount} of {rows.length} still alive
-      </p>
-      <table className="leaderboard">
-        <thead>
-          <tr>
-            <th>Player</th>
-            <th>Status</th>
-            <th>Picks</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.userId} className={row.eliminatedWeek !== null ? 'eliminated' : ''}>
-              <td>{row.displayName}</td>
-              <td>
-                {row.eliminatedWeek !== null ? `Eliminated Wk ${row.eliminatedWeek}` : 'Alive'}
-              </td>
-              <td>
-                {row.picks.length === 0
-                  ? '—'
-                  : row.picks
-                      .map((p) => `Wk${p.week}: ${p.sleeper_manager_name} (${p.result})`)
-                      .join(', ')}
-              </td>
+      <div className="stat-row">
+        <span>
+          {aliveCount} of {rows.length} still alive
+        </span>
+        <span className="stat-bar">
+          <span
+            className="stat-bar-fill"
+            style={{ width: `${rows.length === 0 ? 0 : (aliveCount / rows.length) * 100}%` }}
+          />
+        </span>
+      </div>
+      <div className="table-wrap">
+        <table className="leaderboard">
+          <thead>
+            <tr>
+              <th>Player</th>
+              <th>Status</th>
+              <th>Picks</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.userId} className={row.eliminatedWeek !== null ? 'eliminated' : ''}>
+                <td className="player-name">{row.displayName}</td>
+                <td>
+                  {row.eliminatedWeek !== null ? (
+                    <span className="pill pill-eliminated">Wk {row.eliminatedWeek}</span>
+                  ) : (
+                    <span className="pill pill-alive">Alive</span>
+                  )}
+                </td>
+                <td>
+                  {row.picks.length === 0 ? (
+                    <span className="hint">—</span>
+                  ) : (
+                    <span className="pick-chips">
+                      {row.picks.map((p) => (
+                        <span key={p.id} className={`pick-chip result-${p.result}`}>
+                          Wk{p.week} {p.sleeper_manager_name}
+                        </span>
+                      ))}
+                    </span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }

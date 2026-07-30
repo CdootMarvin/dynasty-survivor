@@ -93,18 +93,20 @@ export default function Pools() {
 
   return (
     <div className="page">
+      <p className="eyebrow">Your pools</p>
       <h1>Pools</h1>
 
       {loading ? (
-        <p>Loading…</p>
+        <p className="hint">Loading…</p>
       ) : pools.length === 0 ? (
-        <p>No pools yet. Create one below.</p>
+        <p className="hint">No pools yet. Create or join one below.</p>
       ) : (
-        <ul>
+        <ul className="pool-list">
           {pools.map((pool) => (
             <li key={pool.id}>
-              <Link to={`/pools/${pool.id}`}>
-                {pool.name} ({pool.season})
+              <Link to={`/pools/${pool.id}`} className="pool-card">
+                <span className="pool-card-name">{pool.name}</span>
+                <span className="pool-card-season">SEASON {pool.season}</span>
               </Link>
             </li>
           ))}
@@ -113,51 +115,53 @@ export default function Pools() {
 
       {error && <p className="error">{error}</p>}
 
+      <div className="yard-divider" />
+
       <h2>Create a pool</h2>
-      <form onSubmit={handleCreate}>
-        <input
-          placeholder="Pool name"
-          required
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <input
-          placeholder="Sleeper league ID"
-          required
-          value={leagueId}
-          onChange={(e) => setLeagueId(e.target.value)}
-        />
-        <input
-          placeholder="Season"
-          required
-          value={season}
-          onChange={(e) => setSeason(e.target.value)}
-        />
-        <label>
-          Week 1 Thursday (kickoff lock day)
-          <input
-            type="date"
-            value={seasonStartThursday}
-            onChange={(e) => setSeasonStartThursday(e.target.value)}
-          />
-        </label>
-        <button type="submit">Create pool</button>
-      </form>
-      <p className="hint">
-        Picks lock every week at 7:00 PM Central on that Thursday, plus 7 days per week. Leave
-        blank to disable pick locking for this pool.
-      </p>
+      <div className="card">
+        <form onSubmit={handleCreate}>
+          <label>
+            Pool name
+            <input required value={name} onChange={(e) => setName(e.target.value)} />
+          </label>
+          <label>
+            Sleeper league ID
+            <input required value={leagueId} onChange={(e) => setLeagueId(e.target.value)} />
+          </label>
+          <label>
+            Season
+            <input required value={season} onChange={(e) => setSeason(e.target.value)} />
+          </label>
+          <label>
+            Week 1 Thursday (kickoff lock day)
+            <input
+              type="date"
+              value={seasonStartThursday}
+              onChange={(e) => setSeasonStartThursday(e.target.value)}
+            />
+          </label>
+          <button type="submit">Create pool</button>
+        </form>
+        <p className="hint">
+          Picks lock every week at 7:00 PM Central on that Thursday, plus 7 days per week. Leave
+          blank to disable pick locking for this pool.
+        </p>
+      </div>
 
       <h2>Join a pool</h2>
-      <form onSubmit={handleJoin}>
-        <input
-          placeholder="Invite code"
-          required
-          value={inviteCode}
-          onChange={(e) => setInviteCode(e.target.value)}
-        />
-        <button type="submit">Join pool</button>
-      </form>
+      <div className="card">
+        <form onSubmit={handleJoin}>
+          <label>
+            Invite code
+            <input
+              required
+              value={inviteCode}
+              onChange={(e) => setInviteCode(e.target.value)}
+            />
+          </label>
+          <button type="submit">Join pool</button>
+        </form>
+      </div>
     </div>
   )
 }

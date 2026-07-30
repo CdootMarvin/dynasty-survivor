@@ -19,6 +19,16 @@ function App() {
     <>
       <nav className="navbar">
         <Link to="/" className="brand">
+          <svg className="brand-icon" viewBox="0 0 48 48" aria-hidden="true">
+            <ellipse cx="24" cy="24" rx="22" ry="12.5" fill="currentColor" />
+            <g stroke="var(--bg)" strokeWidth="1.8" strokeLinecap="round">
+              <line x1="13" y1="24" x2="35" y2="24" />
+              <line x1="17.5" y1="20.5" x2="17.5" y2="27.5" />
+              <line x1="21.7" y1="20.5" x2="21.7" y2="27.5" />
+              <line x1="26.3" y1="20.5" x2="26.3" y2="27.5" />
+              <line x1="30.5" y1="20.5" x2="30.5" y2="27.5" />
+            </g>
+          </svg>
           Dynasty Survivor
         </Link>
         {!loading && (

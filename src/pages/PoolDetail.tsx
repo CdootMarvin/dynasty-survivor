@@ -220,60 +220,80 @@ export default function PoolDetail() {
   if (!pool) return null
 
   return (
-    <div className="page">
+    <div className="page page-wide">
+      <p className="eyebrow">Season {pool.season}</p>
       <h1>{pool.name}</h1>
-      <p>
-        Season {pool.season} · Invite code: <code>{pool.invite_code}</code>
+      <p className="hint">
+        Invite code: <code className="invite-chip">{pool.invite_code}</code>
       </p>
 
       {user?.id === pool.created_by && (
         <div>
           {settingsOpen ? (
-            <form onSubmit={handleSaveSettings}>
-              <input
-                placeholder="Pool name"
-                required
-                value={nameField}
-                onChange={(e) => setNameField(e.target.value)}
-              />
-              <input
-                placeholder="Sleeper league ID"
-                required
-                value={leagueIdField}
-                onChange={(e) => setLeagueIdField(e.target.value)}
-              />
-              <input
-                placeholder="Season"
-                required
-                value={seasonField}
-                onChange={(e) => setSeasonField(e.target.value)}
-              />
-              <label>
-                Week 1 Thursday (kickoff lock day)
-                <input
-                  type="date"
-                  value={seasonStartThursdayField}
-                  onChange={(e) => setSeasonStartThursdayField(e.target.value)}
-                />
-              </label>
-              <button type="submit" disabled={settingsSaving}>
-                {settingsSaving ? 'Saving…' : 'Save settings'}
-              </button>
-              <button type="button" onClick={() => setSettingsOpen(false)}>
-                Cancel
-              </button>
-              {settingsError && <p className="error">{settingsError}</p>}
-            </form>
+            <div className="card">
+              <form onSubmit={handleSaveSettings}>
+                <label>
+                  Pool name
+                  <input
+                    required
+                    value={nameField}
+                    onChange={(e) => setNameField(e.target.value)}
+                  />
+                </label>
+                <label>
+                  Sleeper league ID
+                  <input
+                    required
+                    value={leagueIdField}
+                    onChange={(e) => setLeagueIdField(e.target.value)}
+                  />
+                </label>
+                <label>
+                  Season
+                  <input
+                    required
+                    value={seasonField}
+                    onChange={(e) => setSeasonField(e.target.value)}
+                  />
+                </label>
+                <label>
+                  Week 1 Thursday (kickoff lock day)
+                  <input
+                    type="date"
+                    value={seasonStartThursdayField}
+                    onChange={(e) => setSeasonStartThursdayField(e.target.value)}
+                  />
+                </label>
+                <div className="btn-row">
+                  <button type="submit" disabled={settingsSaving}>
+                    {settingsSaving ? 'Saving…' : 'Save settings'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-ghost"
+                    onClick={() => setSettingsOpen(false)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+                {settingsError && <p className="error">{settingsError}</p>}
+              </form>
+            </div>
           ) : (
-            <>
-              <button type="button" onClick={openSettings}>
+            <div className="btn-row">
+              <button type="button" className="btn-ghost btn-sm" onClick={openSettings}>
                 Edit pool settings
               </button>
-              <button type="button" onClick={handleDeletePool} disabled={deleting}>
+              <button
+                type="button"
+                className="btn-danger btn-sm"
+                onClick={handleDeletePool}
+                disabled={deleting}
+              >
                 {deleting ? 'Deleting…' : 'Delete pool'}
               </button>
               {settingsError && <p className="error">{settingsError}</p>}
-            </>
+            </div>
           )}
         </div>
       )}
@@ -282,7 +302,8 @@ export default function PoolDetail() {
         <p className="hint">Testing mode: viewing week {weekOverride} instead of the live week.</p>
       )}
 
-      <h2>Week {currentWeek}</h2>
+      <p className="eyebrow">Week {currentWeek}</p>
+      <h2>Make your pick</h2>
       {lockAt && (
         <p className="hint">
           {locked
@@ -291,32 +312,36 @@ export default function PoolDetail() {
         </p>
       )}
       {eliminatedPick ? (
-        <p>
-          You were eliminated in Week {eliminatedPick.week} — {eliminatedPick.sleeper_manager_name}{' '}
-          lost that week's matchup.
-        </p>
+        <div className="banner banner-eliminated">
+          You were eliminated in Week {eliminatedPick.week} —{' '}
+          <strong>{eliminatedPick.sleeper_manager_name}</strong> lost that week's matchup.
+        </div>
       ) : hasPickedThisWeek ? (
-        <p>You've already picked for this week.</p>
+        <div className="banner banner-info">You've already picked for this week.</div>
       ) : locked ? (
-        <p>Picks are locked for this week — you didn't get a pick in before kickoff.</p>
+        <div className="banner banner-locked">
+          Picks are locked for this week — you didn't get a pick in before kickoff.
+        </div>
       ) : (
-        <div>
-          <select
-            value={selectedRoster}
-            onChange={(e) => setSelectedRoster(e.target.value ? Number(e.target.value) : '')}
-          >
-            <option value="">Select a manager…</option>
-            {managers
-              .filter((m) => !alreadyPickedRosterIds.has(m.rosterId))
-              .map((m) => (
-                <option key={m.rosterId} value={m.rosterId}>
-                  {m.displayName}
-                </option>
-              ))}
-          </select>
-          <button type="button" onClick={handlePick} disabled={selectedRoster === ''}>
-            Lock in pick
-          </button>
+        <div className="card">
+          <form onSubmit={(e) => e.preventDefault()}>
+            <select
+              value={selectedRoster}
+              onChange={(e) => setSelectedRoster(e.target.value ? Number(e.target.value) : '')}
+            >
+              <option value="">Select a manager…</option>
+              {managers
+                .filter((m) => !alreadyPickedRosterIds.has(m.rosterId))
+                .map((m) => (
+                  <option key={m.rosterId} value={m.rosterId}>
+                    {m.displayName}
+                  </option>
+                ))}
+            </select>
+            <button type="button" onClick={handlePick} disabled={selectedRoster === ''}>
+              Lock in pick
+            </button>
+          </form>
           <p className="hint">
             {currentWeek !== null && currentWeek < RESET_WEEK
               ? `Managers you've already picked are unavailable through week ${RESET_WEEK - 1}, then everyone's available again starting week ${RESET_WEEK}.`
@@ -326,6 +351,9 @@ export default function PoolDetail() {
         </div>
       )}
 
+      <div className="yard-divider" />
+
+      <p className="eyebrow">Standings</p>
       <h2>Leaderboard</h2>
       <Leaderboard poolId={pool.id} leagueId={pool.sleeper_league_id} refreshToken={refreshToken} />
     </div>
