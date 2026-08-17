@@ -36,13 +36,17 @@ function App() {
           <span className="nav-actions">
             {user ? (
               <>
-                <Link to="/profile">Profile</Link>
+                <Link to="/profile" className="nav-btn">
+                  Profile
+                </Link>
                 <button type="button" onClick={signOut}>
                   Sign out
                 </button>
               </>
             ) : (
-              <Link to="/login">Sign in</Link>
+              <Link to="/login" className="nav-btn">
+                Sign in
+              </Link>
             )}
           </span>
         )}
