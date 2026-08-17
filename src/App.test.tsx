@@ -2,10 +2,10 @@ import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import type { User } from '@supabase/supabase-js'
-import { useAuth } from './lib/auth'
+import { useAuth } from './lib/useAuth'
 import App from './App'
 
-vi.mock('./lib/auth', () => ({ useAuth: vi.fn() }))
+vi.mock('./lib/useAuth', () => ({ useAuth: vi.fn() }))
 vi.mock('./pages/Pools', () => ({ default: () => <div>POOLS_PAGE</div> }))
 vi.mock('./pages/PoolDetail', () => ({ default: () => <div>POOL_DETAIL_PAGE</div> }))
 

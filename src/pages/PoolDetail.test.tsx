@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import type { User } from '@supabase/supabase-js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { useAuth } from '../lib/auth'
+import { useAuth } from '../lib/useAuth'
 import { supabase } from '../lib/supabase'
 import { getLeagueManagers, getMatchups, getNflState } from '../lib/sleeper'
 import { ok, fail, queueFrom, type QueryResult } from '../test/mockSupabase'
@@ -11,7 +11,7 @@ import type { LeagueManager } from '../lib/sleeper'
 import type { Pick, Pool, SleeperMatchup } from '../types'
 import PoolDetail from './PoolDetail'
 
-vi.mock('../lib/auth', () => ({ useAuth: vi.fn() }))
+vi.mock('../lib/useAuth', () => ({ useAuth: vi.fn() }))
 vi.mock('../lib/supabase', () => ({ supabase: { from: vi.fn() } }))
 vi.mock('../lib/sleeper', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../lib/sleeper')>()

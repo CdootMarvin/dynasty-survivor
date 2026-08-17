@@ -1,7 +1,7 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { useAuth } from '../lib/auth'
+import { useAuth } from '../lib/useAuth'
 import type { Pool } from '../types'
 
 export default function Pools() {
@@ -16,7 +16,7 @@ export default function Pools() {
   const [seasonStartThursday, setSeasonStartThursday] = useState('')
   const [inviteCode, setInviteCode] = useState('')
 
-  async function loadPools() {
+  const loadPools = useCallback(async () => {
     if (!user) return
     setLoading(true)
     const { data, error } = await supabase
@@ -27,11 +27,11 @@ export default function Pools() {
     if (error) setError(error.message)
     else setPools((data ?? []).map((row) => row.pools as unknown as Pool).filter(Boolean))
     setLoading(false)
-  }
+  }, [user])
 
   useEffect(() => {
     loadPools()
-  }, [user])
+  }, [loadPools])
 
   async function handleCreate(e: FormEvent) {
     e.preventDefault()

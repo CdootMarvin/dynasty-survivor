@@ -3,12 +3,12 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import type { User } from '@supabase/supabase-js'
 import { describe, expect, it, vi } from 'vitest'
-import { useAuth } from '../lib/auth'
+import { useAuth } from '../lib/useAuth'
 import { supabase } from '../lib/supabase'
 import { ok, fail, queueFrom } from '../test/mockSupabase'
 import Pools from './Pools'
 
-vi.mock('../lib/auth', () => ({ useAuth: vi.fn() }))
+vi.mock('../lib/useAuth', () => ({ useAuth: vi.fn() }))
 vi.mock('../lib/supabase', () => ({ supabase: { from: vi.fn() } }))
 
 const USER = { id: 'u1' } as User

@@ -1,10 +1,10 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import { useAuth } from '../lib/auth'
+import { useAuth } from '../lib/useAuth'
 import Login from './Login'
 
-vi.mock('../lib/auth', () => ({ useAuth: vi.fn() }))
+vi.mock('../lib/useAuth', () => ({ useAuth: vi.fn() }))
 
 function mockAuth(signInWithEmail: (email: string) => Promise<{ error: string | null }>) {
   vi.mocked(useAuth).mockReturnValue({

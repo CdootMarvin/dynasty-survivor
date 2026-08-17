@@ -1,5 +1,5 @@
 import { Navigate, Route, Routes, Link } from 'react-router-dom'
-import { useAuth } from './lib/auth'
+import { useAuth } from './lib/useAuth'
 import Login from './pages/Login'
 import Pools from './pages/Pools'
 import PoolDetail from './pages/PoolDetail'
