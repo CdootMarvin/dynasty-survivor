@@ -21,6 +21,7 @@
   padding: 0.4rem 0.7rem;
   margin: -0.4rem -0.7rem;
   border-radius: 999px;
+  border: 1px solid var(--border);
   font-family: var(--font-display);
   font-weight: 600;
   font-size: 1.05rem;
@@ -30,12 +31,14 @@
   color: var(--text-bright);
   transition:
     color 0.15s ease,
-    background 0.15s ease;
+    background 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .brand:hover {
   color: var(--accent-strong);
   background: var(--bg-elevated-2);
+  border-color: var(--accent);
 }
 
 .brand-icon {
