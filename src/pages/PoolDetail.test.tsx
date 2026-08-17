@@ -44,6 +44,7 @@ function renderPoolDetail(options: {
   matchupsByWeek?: Record<number, SleeperMatchup[]>
   extraFromResults?: QueryResult[]
   userId?: string
+  seasonType?: 'pre' | 'regular' | 'post'
 }) {
   const {
     route = '/pools/p1',
@@ -54,6 +55,7 @@ function renderPoolDetail(options: {
     matchupsByWeek = {},
     extraFromResults = [],
     userId = 'u1',
+    seasonType = 'regular',
   } = options
 
   vi.mocked(useAuth).mockReturnValue({
@@ -64,7 +66,7 @@ function renderPoolDetail(options: {
     signOut: vi.fn(),
   })
   vi.mocked(getLeagueManagers).mockResolvedValue(managers)
-  vi.mocked(getNflState).mockResolvedValue({ week: nflWeek, season: '2026', season_type: 'regular' })
+  vi.mocked(getNflState).mockResolvedValue({ week: nflWeek, season: '2026', season_type: seasonType })
   vi.mocked(getMatchups).mockImplementation((_league, week) =>
     Promise.resolve(matchupsByWeek[week] ?? []),
   )
@@ -162,6 +164,16 @@ describe('PoolDetail', () => {
     expect(
       screen.getByText('Testing mode: viewing week 3 instead of the live week.'),
     ).toBeInTheDocument()
+  })
+
+  it('does not open picking during the pre-season, even if Sleeper reports a non-zero week', async () => {
+    // Regression: Sleeper's /state/nfl can report e.g. week: 2 while season_type is still "pre",
+    // which would otherwise open picking (and skip week 1 entirely) before the season starts.
+    renderPoolDetail({ nflWeek: 2, seasonType: 'pre' })
+
+    expect(await screen.findByText('Picks open once the regular season starts.')).toBeInTheDocument()
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
+    expect(screen.queryByText('Week 2')).not.toBeInTheDocument()
   })
 
   it('shows settings/delete controls only to the pool creator', async () => {

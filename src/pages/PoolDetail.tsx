@@ -19,8 +19,8 @@ export default function PoolDetail() {
   const { user } = useAuth()
   const navigate = useNavigate()
 
-  // Testing aid: ?week=5 overrides Sleeper's live current week (0 during the pre-season, so
-  // picking is otherwise impossible until the real season starts). Never used in normal play.
+  // Testing aid: ?week=5 overrides the live current week, which is otherwise null until Sleeper
+  // reports the regular season has started. Never used in normal play.
   const [searchParams] = useSearchParams()
   const weekOverrideParam = searchParams.get('week')
   const weekOverride =
@@ -75,7 +75,12 @@ export default function PoolDetail() {
         ])
 
         setManagers(leagueManagers)
-        setCurrentWeek(weekOverride ?? nflState.week)
+        // Sleeper's live week counter advances during the pre-season (e.g. reporting week 2
+        // while season_type is still "pre"), so trusting it verbatim would open picking, and
+        // skip week 1 entirely, before any real games are played. Only treat it as the current
+        // pickable week once the regular season is actually underway.
+        const liveWeek = nflState.season_type === 'regular' ? nflState.week : null
+        setCurrentWeek(weekOverride ?? liveWeek)
         const picks = picksRes.data ?? []
         setMyPicks(picks)
 
@@ -302,7 +307,7 @@ export default function PoolDetail() {
         <p className="hint">Testing mode: viewing week {weekOverride} instead of the live week.</p>
       )}
 
-      <p className="eyebrow">Week {currentWeek}</p>
+      <p className="eyebrow">{currentWeek !== null ? `Week ${currentWeek}` : 'Season'}</p>
       <h2>Make your pick</h2>
       {lockAt && (
         <p className="hint">
@@ -315,6 +320,10 @@ export default function PoolDetail() {
         <div className="banner banner-eliminated">
           You were eliminated in Week {eliminatedPick.week} —{' '}
           <strong>{eliminatedPick.sleeper_manager_name}</strong> lost that week's matchup.
+        </div>
+      ) : currentWeek === null ? (
+        <div className="banner banner-info">
+          Picks open once the regular season starts.
         </div>
       ) : hasPickedThisWeek ? (
         <div className="banner banner-info">You've already picked for this week.</div>
