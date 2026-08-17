@@ -108,16 +108,26 @@ export default function PoolDetail() {
     load()
   }, [poolId, user, weekOverride])
 
+  const myPickThisWeek = currentWeek !== null ? myPicks.find((p) => p.week === currentWeek) : undefined
+
+  // Pre-fills the manager dropdown with the current week's pick, if one exists and the player
+  // hasn't touched the dropdown yet, so "changing" a pick starts from what's already selected
+  // rather than a blank one.
+  const effectiveSelectedRoster =
+    selectedRoster === '' ? (myPickThisWeek?.sleeper_roster_id ?? '') : selectedRoster
+
   // A manager can be picked again once the second half of the season starts (see pickRules.ts),
-  // so only picks from the same half as the current week block re-selecting that manager.
+  // so only picks from the same half as the current week block re-selecting that manager. The
+  // current week's own pick is excluded so changing your mind doesn't lock you out of the
+  // manager you already have selected.
   const alreadyPickedRosterIds = new Set(
     currentWeek === null
       ? []
       : myPicks
-          .filter((p) => pickHalf(p.week) === pickHalf(currentWeek))
+          .filter((p) => pickHalf(p.week) === pickHalf(currentWeek) && p.id !== myPickThisWeek?.id)
           .map((p) => p.sleeper_roster_id),
   )
-  const hasPickedThisWeek = currentWeek !== null && myPicks.some((p) => p.week === currentWeek)
+  const hasPickedThisWeek = myPickThisWeek !== undefined
   const locked =
     pool !== null && currentWeek !== null && isWeekLocked(currentWeek, pool.season_start_thursday)
   const lockAt =
@@ -126,30 +136,51 @@ export default function PoolDetail() {
       : null
 
   async function handlePick() {
-    if (!poolId || !user || !currentWeek || selectedRoster === '' || locked || eliminatedPick) return
-    const manager = managers.find((m) => m.rosterId === selectedRoster)
+    if (!poolId || !user || !currentWeek || effectiveSelectedRoster === '' || locked || eliminatedPick)
+      return
+    const manager = managers.find((m) => m.rosterId === effectiveSelectedRoster)
     if (!manager) return
 
     setPickError(null)
-    const { data, error } = await supabase
-      .from('picks')
-      .insert({
-        pool_id: poolId,
-        user_id: user.id,
-        week: currentWeek,
-        sleeper_roster_id: manager.rosterId,
-        sleeper_manager_name: manager.displayName,
-      })
-      .select()
-      .single()
 
-    if (error || !data) {
-      setPickError(error?.message ?? 'Failed to save pick')
-      return
+    if (myPickThisWeek) {
+      const { data, error } = await supabase
+        .from('picks')
+        .update({
+          sleeper_roster_id: manager.rosterId,
+          sleeper_manager_name: manager.displayName,
+        })
+        .eq('id', myPickThisWeek.id)
+        .select()
+        .single()
+
+      if (error || !data) {
+        setPickError(error?.message ?? 'Failed to update pick')
+        return
+      }
+
+      setMyPicks((prev) => prev.map((p) => (p.id === data.id ? data : p)))
+    } else {
+      const { data, error } = await supabase
+        .from('picks')
+        .insert({
+          pool_id: poolId,
+          user_id: user.id,
+          week: currentWeek,
+          sleeper_roster_id: manager.rosterId,
+          sleeper_manager_name: manager.displayName,
+        })
+        .select()
+        .single()
+
+      if (error || !data) {
+        setPickError(error?.message ?? 'Failed to save pick')
+        return
+      }
+
+      setMyPicks((prev) => [...prev, data])
     }
 
-    setMyPicks((prev) => [...prev, data])
-    setSelectedRoster('')
     setRefreshToken((n) => n + 1)
   }
 
@@ -325,17 +356,28 @@ export default function PoolDetail() {
         <div className="banner banner-info">
           Picks open once the regular season starts.
         </div>
-      ) : hasPickedThisWeek ? (
-        <div className="banner banner-info">You've already picked for this week.</div>
       ) : locked ? (
-        <div className="banner banner-locked">
-          Picks are locked for this week — you didn't get a pick in before kickoff.
+        <div className={`banner ${hasPickedThisWeek ? 'banner-info' : 'banner-locked'}`}>
+          {hasPickedThisWeek ? (
+            <>
+              Picks are locked for this week — you picked{' '}
+              <strong>{myPickThisWeek!.sleeper_manager_name}</strong>.
+            </>
+          ) : (
+            "Picks are locked for this week — you didn't get a pick in before kickoff."
+          )}
         </div>
       ) : (
         <div className="card">
+          {hasPickedThisWeek && (
+            <p className="hint">
+              You picked <strong>{myPickThisWeek!.sleeper_manager_name}</strong> for this week.
+              You can change it until picks lock.
+            </p>
+          )}
           <form onSubmit={(e) => e.preventDefault()}>
             <select
-              value={selectedRoster}
+              value={effectiveSelectedRoster}
               onChange={(e) => setSelectedRoster(e.target.value ? Number(e.target.value) : '')}
             >
               <option value="">Select a manager…</option>
@@ -347,8 +389,8 @@ export default function PoolDetail() {
                   </option>
                 ))}
             </select>
-            <button type="button" onClick={handlePick} disabled={selectedRoster === ''}>
-              Lock in pick
+            <button type="button" onClick={handlePick} disabled={effectiveSelectedRoster === ''}>
+              {hasPickedThisWeek ? 'Update pick' : 'Lock in pick'}
             </button>
           </form>
           <p className="hint">

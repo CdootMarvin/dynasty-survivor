@@ -102,7 +102,7 @@ describe('PoolDetail', () => {
     expect(screen.queryByText('Edit pool settings')).not.toBeInTheDocument()
   })
 
-  it('shows the already-picked banner once a pick exists for the current week', async () => {
+  it('shows an editable, pre-filled pick when a pick already exists for the current week', async () => {
     renderPoolDetail({
       picks: [
         {
@@ -117,7 +117,48 @@ describe('PoolDetail', () => {
       ],
     })
 
-    expect(await screen.findByText("You've already picked for this week.")).toBeInTheDocument()
+    expect(
+      await screen.findByText((_, el) => el?.textContent === 'You picked Mgr A for this week. You can change it until picks lock.'),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('combobox')).toHaveValue('1')
+    expect(screen.getByRole('button', { name: 'Update pick' })).toBeInTheDocument()
+    // The manager already picked this week must remain selectable (not filtered out).
+    expect(screen.getByRole('option', { name: 'Mgr A' })).toBeInTheDocument()
+  })
+
+  it('excludes managers used in other weeks this half, but not the current week\'s own pick', async () => {
+    renderPoolDetail({
+      managers: [
+        { rosterId: 1, displayName: 'Mgr A', avatar: null },
+        { rosterId: 2, displayName: 'Mgr B', avatar: null },
+        { rosterId: 3, displayName: 'Mgr C', avatar: null },
+      ],
+      picks: [
+        {
+          id: 'pk1',
+          pool_id: 'p1',
+          user_id: 'u1',
+          week: 5,
+          sleeper_roster_id: 1,
+          sleeper_manager_name: 'Mgr A',
+          created_at: '',
+        },
+        {
+          id: 'pk2',
+          pool_id: 'p1',
+          user_id: 'u1',
+          week: 4,
+          sleeper_roster_id: 2,
+          sleeper_manager_name: 'Mgr B',
+          created_at: '',
+        },
+      ],
+    })
+
+    await screen.findByRole('combobox')
+    expect(screen.getByRole('option', { name: 'Mgr A' })).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: 'Mgr B' })).not.toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'Mgr C' })).toBeInTheDocument()
   })
 
   it('shows the eliminated banner once a past pick lost its matchup', async () => {
@@ -155,6 +196,29 @@ describe('PoolDetail', () => {
     expect(
       await screen.findByText("Picks are locked for this week — you didn't get a pick in before kickoff."),
     ).toBeInTheDocument()
+  })
+
+  it('shows what you picked, not an editable form, once locked with a pick already in', async () => {
+    renderPoolDetail({
+      pool: { season_start_thursday: '2020-01-02' }, // week 1 lock is long in the past
+      nflWeek: 1,
+      picks: [
+        {
+          id: 'pk1',
+          pool_id: 'p1',
+          user_id: 'u1',
+          week: 1,
+          sleeper_roster_id: 1,
+          sleeper_manager_name: 'Mgr A',
+          created_at: '',
+        },
+      ],
+    })
+
+    expect(
+      await screen.findByText((_, el) => el?.textContent === 'Picks are locked for this week — you picked Mgr A.'),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
   })
 
   it('honors the ?week= override and shows the testing-mode hint', async () => {
@@ -200,7 +264,7 @@ describe('PoolDetail', () => {
     expect(chains[2].eq).toHaveBeenCalledWith('id', 'p1')
   })
 
-  it('submits a pick and flips to the already-picked banner', async () => {
+  it('submits a new pick and switches the form into edit mode', async () => {
     const user = userEvent.setup()
     const { chains } = renderPoolDetail({
       extraFromResults: [
@@ -221,7 +285,8 @@ describe('PoolDetail', () => {
     await user.selectOptions(select, '1')
     await user.click(screen.getByRole('button', { name: 'Lock in pick' }))
 
-    expect(await screen.findByText("You've already picked for this week.")).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Update pick' })).toBeInTheDocument()
+    expect(select).toHaveValue('1')
     expect(chains[2].insert).toHaveBeenCalledWith(
       expect.objectContaining({
         pool_id: 'p1',
@@ -231,6 +296,48 @@ describe('PoolDetail', () => {
         sleeper_manager_name: 'Mgr A',
       }),
     )
+  })
+
+  it('updates an existing pick before lock instead of inserting a new one', async () => {
+    const user = userEvent.setup()
+    const { chains } = renderPoolDetail({
+      picks: [
+        {
+          id: 'pk1',
+          pool_id: 'p1',
+          user_id: 'u1',
+          week: 5,
+          sleeper_roster_id: 1,
+          sleeper_manager_name: 'Mgr A',
+          created_at: '',
+        },
+      ],
+      extraFromResults: [
+        ok({
+          id: 'pk1',
+          pool_id: 'p1',
+          user_id: 'u1',
+          week: 5,
+          sleeper_roster_id: 2,
+          sleeper_manager_name: 'Mgr B',
+          created_at: '',
+        }),
+      ],
+    })
+
+    const select = await screen.findByRole('combobox')
+    expect(select).toHaveValue('1')
+    await user.selectOptions(select, '2')
+    await user.click(screen.getByRole('button', { name: 'Update pick' }))
+
+    expect(
+      await screen.findByText((_, el) => el?.textContent === 'You picked Mgr B for this week. You can change it until picks lock.'),
+    ).toBeInTheDocument()
+    expect(chains[2].update).toHaveBeenCalledWith({
+      sleeper_roster_id: 2,
+      sleeper_manager_name: 'Mgr B',
+    })
+    expect(chains[2].eq).toHaveBeenCalledWith('id', 'pk1')
   })
 
   it('saves edited pool settings and reflects them in the UI', async () => {
