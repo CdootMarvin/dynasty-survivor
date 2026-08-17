@@ -3,6 +3,7 @@ import { useAuth } from './lib/useAuth'
 import Login from './pages/Login'
 import Pools from './pages/Pools'
 import PoolDetail from './pages/PoolDetail'
+import Profile from './pages/Profile'
 import './App.css'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -32,11 +33,14 @@ function App() {
           Dynasty Survivor
         </Link>
         {!loading && (
-          <span>
+          <span className="nav-actions">
             {user ? (
-              <button type="button" onClick={signOut}>
-                Sign out
-              </button>
+              <>
+                <Link to="/profile">Profile</Link>
+                <button type="button" onClick={signOut}>
+                  Sign out
+                </button>
+              </>
             ) : (
               <Link to="/login">Sign in</Link>
             )}
@@ -59,6 +63,14 @@ function App() {
           element={
             <RequireAuth>
               <PoolDetail />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <RequireAuth>
+              <Profile />
             </RequireAuth>
           }
         />

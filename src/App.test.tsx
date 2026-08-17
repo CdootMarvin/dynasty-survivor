@@ -8,6 +8,7 @@ import App from './App'
 vi.mock('./lib/useAuth', () => ({ useAuth: vi.fn() }))
 vi.mock('./pages/Pools', () => ({ default: () => <div>POOLS_PAGE</div> }))
 vi.mock('./pages/PoolDetail', () => ({ default: () => <div>POOL_DETAIL_PAGE</div> }))
+vi.mock('./pages/Profile', () => ({ default: () => <div>PROFILE_PAGE</div> }))
 
 function mockAuth(overrides: Partial<ReturnType<typeof useAuth>>) {
   vi.mocked(useAuth).mockReturnValue({
@@ -62,5 +63,25 @@ describe('App', () => {
       </MemoryRouter>,
     )
     expect(screen.getByText('POOL_DETAIL_PAGE')).toBeInTheDocument()
+  })
+
+  it('renders the profile route for an authenticated visitor', () => {
+    mockAuth({ user: { id: 'u1' } as User })
+    render(
+      <MemoryRouter initialEntries={['/profile']}>
+        <App />
+      </MemoryRouter>,
+    )
+    expect(screen.getByText('PROFILE_PAGE')).toBeInTheDocument()
+  })
+
+  it('links to the profile page from the navbar when signed in', () => {
+    mockAuth({ user: { id: 'u1' } as User })
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <App />
+      </MemoryRouter>,
+    )
+    expect(screen.getByRole('link', { name: 'Profile' })).toHaveAttribute('href', '/profile')
   })
 })

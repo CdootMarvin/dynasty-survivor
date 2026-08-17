@@ -153,6 +153,12 @@ nav.navbar a {
   font-size: 0.85rem;
 }
 
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
 /* Forms ------------------------------------------------------------------- */
 
 .page form {
